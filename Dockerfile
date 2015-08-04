@@ -23,21 +23,27 @@ RUN apt-get update -qq && apt-get install -qqy \
 RUN echo deb https://get.docker.com/ubuntu docker main > /etc/apt/sources.list.d/docker.list && \
     apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
 
-ENV DOCKER_VERSION 1.7.1
+ENV DOCKER_VERSION 1.6.2
 
 # Install Docker from Docker Inc. repositories.
-RUN apt-get update && apt-get install -y lxc-docker=$DOCKER_VERSION && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y lxc-docker-$DOCKER_VERSION && rm -rf /var/lib/apt/lists/*
 
 ADD wrapdocker /usr/local/bin/wrapdocker
 RUN chmod +x /usr/local/bin/wrapdocker
 VOLUME /var/lib/docker
 
+# Install Jenkins Swarm
+ENV JENKINS_SWARM_VERSION 1.22
+ENV HOME /home/jenkins-slave
+RUN curl --create-dirs -sSLo /usr/share/jenkins/swarm-client-$JENKINS_SWARM_VERSION-jar-with-dependencies.jar http://maven.jenkins-ci.org/content/repositories/releases/org/jenkins-ci/plugins/swarm-client/$JENKINS_SWARM_VERSION/swarm-client-$JENKINS_SWARM_VERSION-jar-with-dependencies.jar \
+  && chmod 755 /usr/share/jenkins
+
+VOLUME /home/jenkins-slave
 
 # Make sure that the "jenkins" user from evarga's image is part of the "docker"
 # group. Needed to access the docker daemon's unix socket.
 RUN usermod -a -G docker jenkins
 
-
 # place the jenkins slave startup script into the container
 ADD jenkins-slave-startup.sh /
-CMD ["/jenkins-slave-startup.sh"]
+ENTRYPOINT ["/jenkins-slave-startup.sh"]
